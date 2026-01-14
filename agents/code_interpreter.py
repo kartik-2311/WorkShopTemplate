@@ -111,14 +111,33 @@ User Query: {query}
                 prompt += f"  Columns: {df.columns.tolist()}\n"
                 prompt += f"  Sample:\n{df.head().to_string()}\n"
 
+        # Check if this is an edit operation
+        is_edit_mode = context.get("edit_mode", False)
+        output_file = context.get("output_file")
+        
+        if is_edit_mode and output_file:
+            prompt += f"""
+IMPORTANT - CSV EDIT MODE:
+- You are editing a CSV file
+- The DataFrame is already loaded (DO NOT use pd.read_csv())
+- After making your edits, you MUST save the DataFrame using: df.to_csv('{output_file}', index=False)
+- Make sure to save the file at the end of your code
+- The output file path is: '{output_file}'
+"""
+        
         prompt += """
 Instructions:
-1. DataFrames are ALREADY LOADED - DO NOT use pd.read_csv()
-2. Write Python code in ```python blocks
+1. DataFrames are ALREADY LOADED - DO NOT use pd.read_csv() unless loading a new file
+2. Write Python code in blocks
 3. Use pandas (pd) and numpy (np)
 4. Print results so they can be displayed
 5. Don't create visualizations
-
+"""
+        
+        if is_edit_mode:
+            prompt += "6. CRITICAL: Save the edited DataFrame to the output file path using to_csv()\n"
+        
+        prompt += """
 Provide your analysis and code:
 """
         return prompt
@@ -130,7 +149,7 @@ Provide your analysis and code:
         current_block = []
 
         for line in lines:
-            if line.strip().startswith("```python"):
+            if line.strip().startswith(""):
                 in_code_block = True
                 current_block = []
             elif line.strip() == "```" and in_code_block:
@@ -172,6 +191,14 @@ Provide your analysis and code:
 
             result["success"] = True
             result["output"] = stdout_capture.getvalue()
+            
+            # Check if any dataframes were modified (for edit operations)
+            # This helps track if the edit was successful
+            modified_dataframes = {}
+            for name, df in self.dataframes.items():
+                # Check if dataframe still exists in exec_globals (might have been modified)
+                if name in exec_globals:
+                    modified_dataframes[name] = exec_globals[name]
 
         except Exception as e:
             result["error"] = str(e)

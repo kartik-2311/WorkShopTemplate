@@ -30,7 +30,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-GEMINI_API_KEY = 'AIzaSyAra6l4Eo4KZlxawadSIRcZAao7GYNHhTY'
+GEMINI_API_KEY = ''
 if not GEMINI_API_KEY:
     raise ValueError("GEMINI_API_KEY environment variable not set")
 

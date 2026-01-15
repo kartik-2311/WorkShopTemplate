@@ -224,7 +224,22 @@ IMPORTANT: After making the edits, save the modified DataFrame to '{output_path}
             
             # Check if the file was actually saved
             output_path_obj = Path(output_path)
-            file_saved = output_path_obj.exists()
+            file_exists = output_path_obj.exists()
+            
+            # Also check execution results for file_saved flag
+            file_saved_from_code = False
+            if agent_result.data and isinstance(agent_result.data, dict):
+                # Check execution results
+                if "results" in agent_result.data:
+                    for exec_result in agent_result.data.get("results", []):
+                        if isinstance(exec_result, dict) and exec_result.get("file_saved"):
+                            file_saved_from_code = True
+                            break
+                # Also check if saved_files is in the data
+                if agent_result.data.get("saved_files") or agent_result.data.get("file_saved"):
+                    file_saved_from_code = True
+            
+            file_saved = file_exists or file_saved_from_code
             
             results = {
                 "query": edit_query,
